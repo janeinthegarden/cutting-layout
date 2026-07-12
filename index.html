@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>재단 최적화 · 판재 배치도</title>
+<style>
+  :root{
+    --bg:#f4f6f8; --panel:#ffffff; --line:#d7dde3; --ink:#1f2933;
+    --muted:#647084; --accent:#2f6fed; --accent2:#0f9d58; --danger:#e0533d;
+    --soft:#eef2f7;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+    background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;}
+  header{background:linear-gradient(180deg,#2f6fed,#245fd6);color:#fff;padding:16px 18px;}
+  header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.3px;}
+  header p{margin:4px 0 0;font-size:13px;opacity:.9;}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;
+    box-shadow:0 1px 2px rgba(20,30,50,.04);}
+  .card h2{margin:0 0 12px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .card h2 .num{background:var(--accent);color:#fff;width:22px;height:22px;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;font-size:13px;}
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .mode{border:2px solid var(--line);border-radius:10px;padding:14px;cursor:pointer;transition:.15s;background:#fafbfc;}
+  .mode:hover{border-color:#b9c6d8;}
+  .mode.active{border-color:var(--accent);background:#eef4ff;}
+  .mode .t{font-weight:700;font-size:15px;margin-bottom:4px;}
+  .mode .d{font-size:12.5px;color:var(--muted);}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+  label.f{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted);font-weight:600;}
+  input,select{font-size:15px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);width:100%;}
+  input:focus{outline:2px solid #bcd0ff;border-color:var(--accent);}
+  table{width:100%;border-collapse:collapse;}
+  th,td{padding:6px;text-align:center;}
+  th{font-size:12px;color:var(--muted);font-weight:700;border-bottom:1px solid var(--line);}
+  td input{padding:7px 6px;text-align:center;}
+  .row-idx{color:var(--muted);font-size:13px;font-weight:600;width:28px;}
+  .swatch{width:16px;height:16px;border-radius:4px;border:1px solid rgba(0,0,0,.15);display:inline-block;}
+  .btn{border:none;border-radius:8px;padding:9px 14px;font-size:14px;font-weight:600;cursor:pointer;}
+  .btn.p{background:var(--accent);color:#fff;}
+  .btn.g{background:var(--accent2);color:#fff;}
+  .btn.s{background:var(--soft);color:var(--ink);border:1px solid var(--line);}
+  .btn.d{background:#fff;color:var(--danger);border:1px solid #f0c4bb;}
+  .btn:active{transform:translateY(1px);}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .del-x{background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;line-height:1;}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;}
+  .stat .k{font-size:12px;color:var(--muted);font-weight:600;}
+  .stat .v{font-size:19px;font-weight:800;letter-spacing:-.5px;margin-top:2px;}
+  .sheetblock{margin-bottom:22px;}
+  .sheetblock .cap{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;}
+  .sheetblock .cap b{font-size:14px;}
+  .sheetblock .cap span{font-size:12.5px;color:var(--muted);}
+  svg{width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:8px;display:block;}
+  .warn{background:#fff4f1;border:1px solid #f3c9bd;color:#a23a26;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:12px;}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px;}
+  .legend .li{display:flex;align-items:center;gap:6px;font-size:12.5px;}
+  .cutlist{font-size:13px;color:var(--ink);}
+  .cutlist li{margin:3px 0;}
+  /* 재단 체크리스트 */
+  .clt{width:100%;border-collapse:collapse;}
+  .clt th,.clt td{border:1px solid var(--line);padding:8px 10px;font-size:15px;}
+  .clt th{background:var(--soft);font-size:13.5px;}
+  .clt td.num{font-weight:700;font-size:16px;}
+  .chk{display:inline-block;width:18px;height:18px;border:1.6px solid #4a5561;border-radius:4px;
+    margin:2px 3px;vertical-align:middle;cursor:pointer;text-align:center;font-size:14px;line-height:17px;
+    font-weight:800;color:#0f9d58;user-select:none;background:#fff;}
+  .chk.on::after{content:'✓';}
+  .clt td.memo,.spt td.memo{text-align:left;font-size:14px;color:#3a4552;}
+  /* 원장별 부품 표 (Parts on Sheet) */
+  .spt{width:100%;border-collapse:collapse;margin-bottom:8px;}
+  .spt th,.spt td{border:1px solid var(--line);padding:6px 9px;font-size:15px;text-align:center;}
+  .spt th{background:var(--soft);font-size:13px;}
+  .spt td.num{font-weight:700;font-size:16px;}
+  @page{size:A4 portrait;margin:10mm;}
+  @media print{
+    header,.controls,.noprint{display:none!important;}
+    body{background:#fff;}
+    .card{border:none;box-shadow:none;padding:0;margin:0;}
+    svg{border:none;border-radius:0;}
+    /* 원장 1장 = 1페이지 */
+    .sheetblock{break-before:page;page-break-before:always;page-break-inside:avoid;break-inside:avoid;margin:0;}
+    .sheetblock .cap{margin:0 0 1.5mm;}
+    .sheetblock .spt{margin-bottom:1.5mm;}
+    /* 배치도: 폭·높이 모두 페이지 안에 맞춰 통째로 축소(비율 유지) → 원장 1장 = A4 1장 */
+    .sheetblock svg{width:100%;height:215mm;display:block;margin:0 auto;}
+    .spt th{font-size:14px;}
+    .spt td{font-size:17px;}
+    .spt td.num{font-size:19px;}
+    .spt td.memo{font-size:16px;}
+    /* 색상 유지 */
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .chk{border-color:#000;}
+    .checklist{margin-top:6mm;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🪚 재단 최적화 · 판재 배치도</h1>
+  <p>재단 사이즈만 넣으면 자재별로 배치도(재단도)를 이미지로 그려줍니다 · 단위 mm</p>
+</header>
+
+<div class="wrap">
+
+  <!-- 모드 -->
+  <div class="card controls">
+    <h2><span class="num">1</span> 재단 방식 선택</h2>
+    <div class="modes">
+      <div class="mode active" id="modeGrain" onclick="setMode('grain')">
+        <div class="t">🌲 집성재 (결 방향)</div>
+        <div class="d">일반 집성 판재. 결이 중요 → 부품의 <b>길이</b>가 결(세로)을 따르고, 왼쪽부터 <b>폭 간격으로 먼저 켠 뒤</b>(리핑) 각 기둥에서 길이를 잘라냅니다. 회전 없음.</div>
+      </div>
+      <div class="mode" id="modeFree" onclick="setMode('free')">
+        <div class="t">🟫 OSB · MDF (자유)</div>
+        <div class="d">결이 없는 판재. 부품을 90° 회전까지 허용해 어느 방향으로든 가장 적게 버리는 배치를 찾습니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 원장/파라미터 -->
+  <div class="card controls">
+    <h2><span class="num">2</span> 원장 · 재단 조건</h2>
+    <div class="grid">
+      <label class="f">원장 가로 (mm)<input id="sheetW" type="number" value="1220"></label>
+      <label class="f">원장 세로 · 결방향 (mm)<input id="sheetH" type="number" value="2440"></label>
+      <label class="f">톱날 두께 kerf (mm)<input id="kerf" type="number" value="3"></label>
+      <label class="f">테두리 여유 (mm)<input id="offset" type="number" value="3"></label>
+    </div>
+    <div class="hint">재단 사이즈는 아래 표에 <b>폭 × 길이</b> 순으로 입력합니다. 집성재 모드에서는 <b>길이</b>가 결(세로) 방향을 따르고, 원장을 <b>폭 간격으로 먼저 켭니다</b>.</div>
+  </div>
+
+  <!-- 부품표 -->
+  <div class="card controls">
+    <h2><span class="num">3</span> 재단 사이즈 목록</h2>
+    <table>
+      <thead>
+        <tr>
+          <th></th><th>#</th><th>라벨(이름)</th><th>폭(mm)</th><th>길이(mm)</th><th>수량</th><th>메모</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="parts"></tbody>
+    </table>
+    <div class="toolbar" style="margin-top:12px;">
+      <button class="btn s" onclick="addRow()">＋ 행 추가</button>
+      <button class="btn s" onclick="loadSample()">예시 데이터</button>
+      <button class="btn s" onclick="clearRows()">전체 비우기</button>
+      <span style="flex:1"></span>
+      <button class="btn s" onclick="saveJSON()">💾 저장(JSON)</button>
+      <label class="btn s" style="margin:0;">📂 불러오기<input type="file" accept=".json" onchange="loadJSON(event)" style="display:none"></label>
+    </div>
+  </div>
+
+  <!-- 실행 -->
+  <div class="card controls">
+    <div class="toolbar">
+      <button class="btn p" style="font-size:16px;padding:12px 22px;" onclick="run()">▶ 배치도 생성</button>
+      <button class="btn s" onclick="window.print()">🖨 인쇄 / PDF 저장</button>
+      <span class="hint" style="margin:0;">부품별로 색과 라벨이 붙고, 원장마다 배치 이미지가 나옵니다.</span>
+    </div>
+  </div>
+
+  <!-- 결과 -->
+  <div id="result"></div>
+
+</div>
+
+<script>
+/* ================= 상태 ================= */
+let mode = 'grain';
+const PALETTE = ['#8ecae6','#ffb703','#a3c9a8','#ffadad','#bdb2ff','#90dbf4','#fdffb6','#ffc6ff',
+  '#f1c0e8','#b9fbc0','#ffd6a5','#a0c4ff','#caffbf','#ffc8dd','#c8b6ff','#b5e48c','#f4a261','#e9c46a'];
+
+function setMode(m){
+  mode = m;
+  document.getElementById('modeGrain').classList.toggle('active', m==='grain');
+  document.getElementById('modeFree').classList.toggle('active', m==='free');
+}
+
+/* ================= 부품표 ================= */
+function partRow(len='',wid='',amt='',name='',memo=''){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><span class="swatch" data-sw></span></td>
+    <td class="row-idx"></td>
+    <td><input type="text" data-name value="${name}" placeholder="선택"></td>
+    <td><input type="number" min="1" data-wid value="${wid}"></td>
+    <td><input type="number" min="1" data-len value="${len}"></td>
+    <td><input type="number" min="1" data-amt value="${amt}"></td>
+    <td><input type="text" data-memo value="${memo}" placeholder="타공 등 추가작업"></td>
+    <td><button class="del-x" title="삭제" onclick="this.closest('tr').remove();reindex()">✕</button></td>`;
+  return tr;
+}
+function addRow(len,wid,amt,name,memo){document.getElementById('parts').appendChild(partRow(len,wid,amt,name,memo));reindex();}
+function clearRows(){document.getElementById('parts').innerHTML='';}
+function reindex(){
+  [...document.querySelectorAll('#parts tr')].forEach((tr,i)=>{
+    tr.querySelector('.row-idx').textContent = i+1;
+    tr.querySelector('[data-sw]').style.background = PALETTE[i%PALETTE.length];
+  });
+}
+function loadSample(){
+  clearRows();
+  const data=[[1464,98,5,''],[1291,80,5,''],[119,98,20,''],[310,98,20,''],[346,80,10,''],
+    [712,50,20,''],[712,32,20,''],[283,98,10,''],[1600,400,6,'세로판'],[1600,120,6,''],
+    [1600,100,6,''],[100,82,12,'']];
+  data.forEach(d=>addRow(...d));
+}
+function readParts(){
+  const parts=[];
+  [...document.querySelectorAll('#parts tr')].forEach((tr,i)=>{
+    const L=parseFloat(tr.querySelector('[data-len]').value);
+    const W=parseFloat(tr.querySelector('[data-wid]').value);
+    const A=parseInt(tr.querySelector('[data-amt]').value)||0;
+    const name=tr.querySelector('[data-name]').value.trim();
+    const memo=tr.querySelector('[data-memo]').value.trim();
+    if(L>0&&W>0&&A>0){parts.push({type:i,color:PALETTE[i%PALETTE.length],L,W,amount:A,name:name||('#'+(i+1)),memo});}
+  });
+  return parts;
+}
+
+/* ================= JSON 저장/불러오기 ================= */
+function saveJSON(){
+  const obj={mode,sheetW:v('sheetW'),sheetH:v('sheetH'),kerf:v('kerf'),offset:v('offset'),
+    parts:[...document.querySelectorAll('#parts tr')].map(tr=>({
+      L:tr.querySelector('[data-len]').value,W:tr.querySelector('[data-wid]').value,
+      A:tr.querySelector('[data-amt]').value,name:tr.querySelector('[data-name]').value,
+      memo:tr.querySelector('[data-memo]').value}))};
+  const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='재단목록.json';a.click();
+}
+function loadJSON(e){
+  const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const o=JSON.parse(r.result);
+    if(o.mode)setMode(o.mode);
+    ['sheetW','sheetH','kerf','offset'].forEach(k=>{if(o[k]!=null)document.getElementById(k).value=o[k];});
+    clearRows();(o.parts||[]).forEach(p=>addRow(p.L,p.W,p.A,p.name,p.memo||''));
+  }catch(err){alert('불러오기 실패: '+err.message);}};
+  r.readAsText(f);e.target.value='';
+}
+function v(id){return parseFloat(document.getElementById(id).value)||0;}
+
+/* ================= 길로틴 패킹 (로스 최소화 탐색) ================= */
+// piece 기본 배치: w=폭(가로, 켜는 간격), h=길이(세로=결방향)
+function bestPlacement(free,p,allowRotate){
+  let best=null;
+  free.forEach((fr,idx)=>{
+    const ors=[{w:p.W,h:p.L,rot:false}];
+    if(allowRotate) ors.push({w:p.L,h:p.W,rot:true});
+    for(const o of ors){
+      if(o.w<=fr.w+1e-6 && o.h<=fr.h+1e-6){
+        const short=Math.min(fr.w-o.w,fr.h-o.h);   // best-short-side-fit
+        const area=fr.w*fr.h-o.w*o.h;              // 남는 면적 최소
+        if(!best || short<best.short-1e-9 || (Math.abs(short-best.short)<1e-9 && area<best.area)){
+          best={idx,fr,o,short,area};
+        }
+      }
+    }
+  });
+  return best;
+}
+function applyPlacement(bin,pl,p,kerf,splitMode){
+  const {idx,fr,o}=pl;
+  bin.placed.push({x:fr.x,y:fr.y,w:o.w,h:o.h,p,rot:o.rot});
+  bin.free.splice(idx,1);
+  const rightW=fr.w-o.w-kerf, bottomH=fr.h-o.h-kerf;
+  let vertical;
+  if(splitMode==='v') vertical=true;          // 오른쪽이 세로 전체(기둥 유지) → 결방향 컷
+  else if(splitMode==='h') vertical=false;
+  else vertical=(fr.w-o.w)>=(fr.h-o.h);        // auto: 큰 잔재를 온전히 남김
+  let r1,r2;
+  if(vertical){
+    r1={x:fr.x+o.w+kerf,y:fr.y,w:rightW,h:fr.h};
+    r2={x:fr.x,y:fr.y+o.h+kerf,w:o.w,h:bottomH};
+  }else{
+    r1={x:fr.x+o.w+kerf,y:fr.y,w:rightW,h:o.h};
+    r2={x:fr.x,y:fr.y+o.h+kerf,w:fr.w,h:bottomH};
+  }
+  [r1,r2].forEach(r=>{if(r.w>1e-6&&r.h>1e-6)bin.free.push(r);});
+  mergeFree(bin);   // 인접한 자투리를 합쳐 큰 잔재로 (로스 최소화)
+}
+function mergeFree(bin){
+  const f=bin.free; let merged=true;
+  while(merged){
+    merged=false;
+    outer:
+    for(let i=0;i<f.length;i++)for(let j=i+1;j<f.length;j++){
+      const a=f[i],b=f[j];
+      if(Math.abs(a.x-b.x)<1e-6&&Math.abs(a.w-b.w)<1e-6){         // 세로로 인접
+        if(Math.abs(a.y+a.h-b.y)<1e-6){a.h+=b.h;f.splice(j,1);merged=true;break outer;}
+        if(Math.abs(b.y+b.h-a.y)<1e-6){b.h+=a.h;f.splice(i,1);merged=true;break outer;}
+      }
+      if(Math.abs(a.y-b.y)<1e-6&&Math.abs(a.h-b.h)<1e-6){         // 가로로 인접
+        if(Math.abs(a.x+a.w-b.x)<1e-6){a.w+=b.w;f.splice(j,1);merged=true;break outer;}
+        if(Math.abs(b.x+b.w-a.x)<1e-6){b.w+=a.w;f.splice(i,1);merged=true;break outer;}
+      }
+    }
+  }
+}
+function packOnce(pieces,SW,SH,kerf,offset,allowRotate,splitMode,binStrategy){
+  const uW=SW-2*offset, uH=SH-2*offset;
+  const bins=[]; const unplaced=[];
+  for(const p of pieces){
+    let target=null,pl=null;
+    if(binStrategy==='best'){        // 모든 원장에서 가장 알맞은 자리 선택
+      let bb=null;
+      for(const b of bins){const c=bestPlacement(b.free,p,allowRotate);
+        if(c&&(!bb||c.short<bb.c.short-1e-9||(Math.abs(c.short-bb.c.short)<1e-9&&c.area<bb.c.area))){bb={b,c};}}
+      if(bb){target=bb.b;pl=bb.c;}
+    }else{                            // first-fit: 앞 원장부터 채워 마지막 장에 잔재 몰기
+      for(const b of bins){const c=bestPlacement(b.free,p,allowRotate);if(c){target=b;pl=c;break;}}
+    }
+    if(!target){
+      const b={free:[{x:offset,y:offset,w:uW,h:uH}],placed:[]};
+      const c=bestPlacement(b.free,p,allowRotate);
+      if(c){bins.push(b);target=b;pl=c;}else{unplaced.push(p);continue;}
+    }
+    applyPlacement(target,pl,p,kerf,splitMode);
+  }
+  return {bins,unplaced};
+}
+function expand(parts){
+  const arr=[];
+  parts.forEach(pt=>{for(let i=0;i<pt.amount;i++)arr.push({...pt});});
+  return arr;
+}
+function scoreResult(res){
+  let totalFree=0,largest=0;
+  res.bins.forEach(b=>b.free.forEach(fr=>{const a=fr.w*fr.h;totalFree+=a;if(a>largest)largest=a;}));
+  // 미배치↓ → 원장 수↓ → 흩어진 자투리(로스)↓ → 가장 큰 잔재는 클수록 좋음(통째로 재사용)
+  return [res.unplaced.length, res.bins.length, Math.round(totalFree-largest), -Math.round(largest)];
+}
+function cmp(a,b){for(let i=0;i<a.length;i++){if(a[i]!==b[i])return a[i]-b[i];}return 0;}
+/* 집성재 전용: 엄격한 기둥(스트립) 배치.
+   왼쪽부터 폭 간격으로 원장 전체 높이를 먼저 켜고(리핑),
+   각 기둥 안에서 위→아래로 긴 부품부터 채워 아래 빈칸을 최소화. */
+function packColumns(pieces,SW,SH,kerf,offset,fillPolicy){
+  const uW=SW-2*offset, uH=SH-2*offset;
+  const bins=[]; const unplaced=[];
+  let remaining=pieces.slice();
+  while(remaining.length){
+    const bin={free:[],placed:[]};
+    let x=offset, placedAny=false;
+    while(true){
+      const availW=uW-(x-offset);
+      if(availW<=0) break;
+      // 새 기둥: 들어가는 부품 중 정렬 순서상 첫 번째의 폭이 켜기 폭
+      const fi=remaining.findIndex(p=>p.W<=availW+1e-6 && p.L<=uH+1e-6);
+      if(fi<0) break;
+      const colW=remaining[fi].W;         // 이 기둥의 켜기 폭
+      let y=offset;
+      // 기둥을 세그먼트(가로 토막) 단위로 채움:
+      // 켜기 → 토막 크로스컷 → 토막 안에서 좁은 부품은 나란히 재켜기
+      while(true){
+        const availH=uH-(y-offset);
+        if(availH<=1e-6) break;
+        // 세그먼트 첫 부품 (같은 폭 우선, 긴 것 우선)
+        let bi=-1,bestKey=null;
+        remaining.forEach((p,i)=>{
+          const okW = fillPolicy==='exact' ? Math.abs(p.W-colW)<1e-6 : p.W<=colW+1e-6;
+          if(okW && p.L<=availH+1e-6){
+            const key=[Math.abs(p.W-colW)<1e-6?0:1, -p.L, -p.W];
+            if(bestKey===null||cmp(key,bestKey)<0){bestKey=key;bi=i;}
+          }
+        });
+        if(bi<0) break;
+        const segFirst=remaining.splice(bi,1)[0];
+        const segH=segFirst.L;            // 토막 높이 = 첫 부품 길이
+        bin.placed.push({x,y,w:segFirst.W,h:segFirst.L,p:segFirst,rot:false});
+        placedAny=true;
+        let cx=x+segFirst.W+kerf;
+        // 토막 안 가로 채움: 남은 폭에 나란히 (같은 길이 우선, 긴 것 우선)
+        if(fillPolicy!=='exact'){
+          while(true){
+            const remW=x+colW-cx;
+            if(remW<=1e-6) break;
+            let si=-1,sKey=null;
+            remaining.forEach((p,i)=>{
+              if(p.W<=remW+1e-6 && p.L<=segH+1e-6){
+                const key=[Math.abs(p.L-segH)<1e-6?0:1, -p.L, -p.W];
+                if(sKey===null||cmp(key,sKey)<0){sKey=key;si=i;}
+              }
+            });
+            if(si<0) break;
+            const p=remaining.splice(si,1)[0];
+            bin.placed.push({x:cx,y,w:p.W,h:p.L,p,rot:false});
+            if(p.L<segH-1e-6){            // 나란히 놓은 부품이 짧으면 그 아래 자투리
+              const bh2=segH-p.L-kerf;
+              if(bh2>1e-6) bin.free.push({x:cx,y:y+p.L+kerf,w:p.W,h:bh2});
+            }
+            cx+=p.W+kerf;
+          }
+        }
+        const segRem=x+colW-cx;           // 토막 오른쪽 자투리
+        if(segRem>1e-6) bin.free.push({x:cx,y,w:segRem,h:segH});
+        y+=segH+kerf;
+      }
+      if(y===offset) break;               // 안전장치
+      // 기둥 아래 잔재
+      const bh=uH-(y-offset);
+      if(bh>1e-6) bin.free.push({x,y,w:colW,h:bh});
+      x+=colW+kerf;
+    }
+    // 오른쪽 통짜 잔재 (아직 켜지 않은 부분)
+    const rw=uW-(x-offset);
+    if(rw>1e-6) bin.free.push({x,y:offset,w:rw,h:uH});
+    if(placedAny){ bins.push(bin); }
+    else { unplaced.push(...remaining); remaining=[]; }
+  }
+  return {bins,unplaced};
+}
+function pack(parts,SW,SH,kerf,offset,allowRotate,grainMode){
+  const base=expand(parts);
+  let best=null;
+  const consider=res=>{const score=scoreResult(res);if(!best||cmp(score,best.score)<0)best={res,score};};
+  if(grainMode){
+    // 기둥 배치만 허용 (폭 먼저 켜기 보장)
+    const sorts={
+      wl:(a,b)=>(b.W-a.W)||(b.L-a.L),     // 폭 큰 기둥부터
+      lw:(a,b)=>(b.L-a.L)||(b.W-a.W),     // 긴 부품부터
+      area:(a,b)=>(b.L*b.W-a.L*a.W)||(b.W-a.W)
+    };
+    for(const sk of Object.keys(sorts))
+      for(const fp of ['exact','fit'])
+        consider(packColumns(base.slice().sort(sorts[sk]),SW,SH,kerf,offset,fp));
+  }else{
+    const sorts={
+      area:(a,b)=>(b.L*b.W-a.L*a.W)||(Math.max(b.L,b.W)-Math.max(a.L,a.W)),
+      maxside:(a,b)=>(Math.max(b.L,b.W)-Math.max(a.L,a.W))||(b.L*b.W-a.L*a.W),
+      width:(a,b)=>(b.W-a.W)||(b.L-a.L),
+      len:(a,b)=>(b.L-a.L)||(b.W-a.W)
+    };
+    for(const sk of Object.keys(sorts))
+      for(const sm of ['auto','v','h'])
+        for(const bs of ['first','best'])
+          consider(packOnce(base.slice().sort(sorts[sk]),SW,SH,kerf,offset,allowRotate,sm,bs));
+  }
+  return best.res;
+}
+
+/* ================= 렌더 ================= */
+function run(){
+  const SW=v('sheetW'),SH=v('sheetH'),kerf=v('kerf'),offset=v('offset');
+  const parts=readParts();
+  const out=document.getElementById('result');
+  if(!SW||!SH){out.innerHTML='<div class="card"><div class="warn">원장 크기를 입력하세요.</div></div>';return;}
+  if(!parts.length){out.innerHTML='<div class="card"><div class="warn">재단 사이즈를 한 줄 이상 입력하세요. (예시 데이터 버튼을 눌러보세요)</div></div>';return;}
+
+  const allowRotate = (mode==='free');
+  const forceVertical = (mode==='grain');
+  const {bins,unplaced}=pack(parts,SW,SH,kerf,offset,allowRotate,forceVertical);
+
+  // 통계
+  const sheetArea=SW*SH/1e6;
+  const nSheets=bins.length;
+  const totalArea=nSheets*sheetArea;
+  let partArea=0,cutLen=0,nParts=0;
+  bins.forEach(b=>b.placed.forEach(pl=>{partArea+=pl.w*pl.h/1e6;nParts++;cutLen+=(pl.w+pl.h)/1000;}));
+  const util= totalArea? (partArea/totalArea*100):0;
+  // 가장 큰 재사용 가능한 잔재
+  let bigRem=null;
+  bins.forEach(b=>b.free.forEach(fr=>{if(!bigRem||fr.w*fr.h>bigRem.w*bigRem.h)bigRem={w:fr.w,h:fr.h};}));
+  const bigRemTxt = (bigRem&&bigRem.w>=80&&bigRem.h>=80)?(Math.round(bigRem.w)+'×'+Math.round(bigRem.h)):'-';
+
+  let html='';
+  html+='<div class="card">';
+  html+='<h2><span class="num">✓</span> 결과 요약 · '+(mode==='grain'?'집성재(결 방향)':'OSB·MDF(자유)')+'</h2>';
+  if(unplaced.length){
+    const u={};unplaced.forEach(p=>u[p.name]=(u[p.name]||0)+1);
+    html+='<div class="warn">⚠ 원장('+SW+'×'+SH+')보다 커서 배치 못한 부품이 있습니다: '+
+      Object.entries(u).map(([k,c])=>k+' ×'+c).join(', ')+'. 부품 크기나 원장 크기를 확인하세요.</div>';
+  }
+  html+='<div class="stats">'+
+    stat('필요 원장',nSheets+' 장')+
+    stat('배치 부품',nParts+' 개')+
+    stat('자재 사용률',util.toFixed(1)+' %')+
+    stat('부품 총면적',partArea.toFixed(3)+' ㎡')+
+    stat('원장 총면적',totalArea.toFixed(3)+' ㎡')+
+    stat('버리는 면적',(totalArea-partArea).toFixed(3)+' ㎡')+
+    stat('가장 큰 잔재',bigRemTxt)+
+    stat('총 절단 길이',cutLen.toFixed(2)+' m')+
+    '</div>';
+  // 범례
+  html+='<div class="legend">';
+  parts.forEach((p,i)=>{html+='<span class="li"><span class="swatch" style="background:'+p.color+'"></span>'+
+    p.name+' · '+p.W+'×'+p.L+' ×'+p.amount+'</span>';});
+  html+='</div>';
+
+  // 재단 체크리스트 표 (요약과 같은 페이지)
+  html+='<div class="checklist" style="margin-top:16px;"><h2><span class="num">☑</span> 재단 체크리스트</h2>';
+  html+='<table class="clt"><thead><tr><th style="width:34px;">#</th><th>라벨</th><th style="width:80px;">폭</th><th style="width:80px;">길이</th><th style="width:60px;">수량</th><th>체크 (재단할 때마다 하나씩)</th><th>메모</th></tr></thead><tbody>';
+  parts.forEach((p,i)=>{
+    let boxes='';
+    for(let k=0;k<p.amount;k++) boxes+='<span class="chk" onclick="this.classList.toggle(\'on\')"></span>';
+    html+='<tr><td>'+(i+1)+'</td>'+
+      '<td style="text-align:left;"><span class="swatch" style="background:'+p.color+'"></span> '+esc(p.name)+'</td>'+
+      '<td class="num">'+p.W+'</td><td class="num">'+p.L+'</td><td>'+p.amount+'</td>'+
+      '<td style="text-align:left;">'+boxes+'</td>'+
+      '<td class="memo">'+esc(p.memo||'')+'</td></tr>';
+  });
+  html+='</tbody></table>';
+  html+='<div class="hint noprint">화면에서는 클릭으로 체크되고, 인쇄하면 빈 네모로 나와 펜으로 체크할 수 있습니다.</div>';
+  html+='</div>';
+  html+='</div>';
+
+  // 원장별 이미지
+  html+='<div class="card"><h2 class="noprint"><span class="num">🖼</span> 원장별 배치도</h2>';
+  bins.forEach((b,i)=>{
+    const usedA=b.placed.reduce((s,pl)=>s+pl.w*pl.h,0)/1e6;
+    const u2=(usedA/sheetArea*100);
+    html+='<div class="sheetblock">';
+    html+='<div class="cap"><b>원장 '+(i+1)+' / '+nSheets+' · '+SW+'×'+SH+'</b>'+
+      '<span>사용률 '+u2.toFixed(1)+'% · 부품 '+b.placed.length+'개'+
+      ' <button class="btn s noprint" style="padding:4px 10px;margin-left:8px;" onclick="downloadPNG('+i+')">🖼 PNG 저장</button></span></div>';
+    // 이 원장의 부품 목록 (Parts on Sheet)
+    const agg={};
+    b.placed.forEach(pl=>{const k=pl.p.type;(agg[k]=agg[k]||{p:pl.p,n:0}).n++;});
+    html+='<table class="spt"><thead><tr><th>라벨</th><th style="width:76px;">폭</th><th style="width:76px;">길이</th><th style="width:58px;">개수</th><th>메모</th></tr></thead><tbody>';
+    Object.values(agg).sort((a,b2)=>a.p.type-b2.p.type).forEach(({p,n})=>{
+      html+='<tr><td style="text-align:left;"><span class="swatch" style="background:'+p.color+'"></span> '+esc(p.name)+'</td>'+
+        '<td class="num">'+p.W+'</td><td class="num">'+p.L+'</td><td class="num">'+n+'</td>'+
+        '<td class="memo">'+esc(p.memo||'')+'</td></tr>';
+    });
+    html+='</tbody></table>';
+    html+=svgFor(b,SW,SH,offset,i);
+    html+='</div>';
+  });
+  html+='</div>';
+  out.innerHTML=html;
+}
+function stat(k,v){return '<div class="stat"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';}
+
+function svgFor(bin,SW,SH,offset,idx){
+  const pad=46, W=760;
+  const scale=(W-2*pad)/SW;
+  const H=SH*scale+2*pad;
+  const ox=pad, oy=pad;
+  let s='<svg id="svg'+idx+'" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">';
+  s+='<defs><pattern id="hatch'+idx+'" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">'+
+     '<rect width="9" height="9" fill="#ffffff"/><line x1="0" y1="0" x2="0" y2="9" stroke="#f0b3ab" stroke-width="1.2"/></pattern></defs>';
+  s+='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#ffffff"/>';
+  // 원장 외곽
+  s+='<rect x="'+ox+'" y="'+oy+'" width="'+(SW*scale)+'" height="'+(SH*scale)+'" fill="#f7f9fb" stroke="#333" stroke-width="1.4"/>';
+  // 치수 (가로/세로)
+  s+='<text x="'+(ox+SW*scale/2)+'" y="'+(oy-14)+'" text-anchor="middle" font-size="21" font-weight="700" fill="#245fd6">'+SW+'</text>';
+  s+='<text x="'+(ox-16)+'" y="'+(oy+SH*scale/2)+'" text-anchor="middle" font-size="21" font-weight="700" fill="#245fd6" transform="rotate(-90 '+(ox-16)+' '+(oy+SH*scale/2)+')">'+SH+'</text>';
+  // 결 방향 화살표 (집성재)
+  if(mode==='grain'){
+    const ax=ox+SW*scale+16, y0=oy+10, y1=oy+SH*scale-10;
+    s+='<line x1="'+ax+'" y1="'+y0+'" x2="'+ax+'" y2="'+y1+'" stroke="#0f9d58" stroke-width="1.4"/>';
+    s+='<polygon points="'+(ax-4)+','+(y0+8)+' '+(ax+4)+','+(y0+8)+' '+ax+','+y0+'" fill="#0f9d58"/>';
+    s+='<polygon points="'+(ax-4)+','+(y1-8)+' '+(ax+4)+','+(y1-8)+' '+ax+','+y1+'" fill="#0f9d58"/>';
+    s+='<text x="'+(ax+7)+'" y="'+(oy+SH*scale/2)+'" font-size="11" fill="#0f9d58" transform="rotate(90 '+(ax+7)+' '+(oy+SH*scale/2)+')">결 방향</text>';
+  }
+  // 부품: 각 변에 치수 표기 (위=가로 치수, 왼쪽=세로 치수), 이름은 우하단
+  bin.placed.forEach(pl=>{
+    const x=ox+pl.x*scale, y=oy+pl.y*scale, w=pl.w*scale, h=pl.h*scale;
+    s+='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+pl.p.color+'" stroke="#2b3440" stroke-width="0.9"/>';
+    const wTxt=Math.round(pl.w), hTxt=Math.round(pl.h);
+    const cx=x+w/2, cy=y+h/2;
+    const label=esc(pl.p.name)+(pl.p.memo?' ※':'')+(pl.rot?' ↻':'');
+    if(w>=46 && h>=46){
+      // 상단 변: 가로 치수 (파랑, 크게)
+      s+='<text x="'+cx+'" y="'+(y+21)+'" text-anchor="middle" font-size="20" font-weight="700" fill="#2545d6">'+wTxt+'</text>';
+      // 왼쪽 변: 세로 치수 (파랑, 세로쓰기, 크게)
+      s+='<text x="'+(x+17)+'" y="'+cy+'" text-anchor="middle" font-size="20" font-weight="700" fill="#2545d6" transform="rotate(-90 '+(x+17)+' '+cy+')">'+hTxt+'</text>';
+      // 이름: 우하단 (크게)
+      if(w>=64 && h>=58) s+='<text x="'+(x+w-6)+'" y="'+(y+h-8)+'" text-anchor="end" font-size="17" font-weight="700" fill="#1b2530">'+label+'</text>';
+    }else if(h>=64 && w>=13){
+      // 좁고 긴 조각: 세로쓰기 치수
+      s+='<text x="'+cx+'" y="'+cy+'" text-anchor="middle" font-size="13" font-weight="700" fill="#1b2530" transform="rotate(-90 '+cx+' '+cy+')">'+wTxt+'×'+hTxt+'</text>';
+    }else if(w>=64 && h>=13){
+      // 낮고 긴 조각: 가로 치수
+      s+='<text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="13" font-weight="700" fill="#1b2530">'+wTxt+'×'+hTxt+'</text>';
+    }else if(w>18&&h>12){
+      s+='<text x="'+cx+'" y="'+(cy+3)+'" text-anchor="middle" font-size="9" fill="#1b2530">'+wTxt+'×'+hTxt+'</text>';
+    }
+  });
+  // 잔재(자투리): 빗금 + 빨간 치수 표기
+  bin.free.forEach(fr=>{
+    if(fr.w>=80 && fr.h>=80){
+      const x=ox+fr.x*scale, y=oy+fr.y*scale, w=fr.w*scale, h=fr.h*scale;
+      s+='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="url(#hatch'+idx+')" stroke="#c9584a" stroke-width="0.8" stroke-dasharray="5 4"/>';
+      const cx=x+w/2, cy=y+h/2;
+      if(w>=42) s+='<text x="'+cx+'" y="'+(y+21)+'" text-anchor="middle" font-size="20" font-weight="700" fill="#c9382a">'+Math.round(fr.w)+'</text>';
+      if(h>=42) s+='<text x="'+(x+17)+'" y="'+cy+'" text-anchor="middle" font-size="20" font-weight="700" fill="#c9382a" transform="rotate(-90 '+(x+17)+' '+cy+')">'+Math.round(fr.h)+'</text>';
+      if(w>70&&h>50) s+='<text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="15" fill="#b2685f">잔재</text>';
+    }
+  });
+  s+='</svg>';
+  return s;
+}
+function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function downloadPNG(i){
+  const svg=document.getElementById('svg'+i);
+  const xml=new XMLSerializer().serializeToString(svg);
+  const vb=svg.viewBox.baseVal;
+  const scale=2;
+  const canvas=document.createElement('canvas');
+  canvas.width=vb.width*scale;canvas.height=vb.height*scale;
+  const ctx=canvas.getContext('2d');
+  const img=new Image();
+  img.onload=()=>{
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    const a=document.createElement('a');
+    a.href=canvas.toDataURL('image/png');
+    a.download='배치도_원장'+(i+1)+'.png';a.click();
+  };
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(xml);
+}
+
+/* Enter → 다음 행 추가 & 바로 입력 (IME·키반복으로 인한 이중 실행 방지) */
+let lastEnterAt=0;
+document.getElementById('parts').addEventListener('keydown',e=>{
+  if(e.key!=='Enter' && e.keyCode!==13) return;
+  e.preventDefault();
+  if(e.repeat || e.isComposing || e.keyCode===229) return;   // 반복·조합 입력 무시
+  const now=Date.now();
+  if(now-lastEnterAt<200) return;                            // 200ms 내 중복 Enter 무시
+  lastEnterAt=now;
+  const rows=[...document.querySelectorAll('#parts tr')];
+  const idx=rows.indexOf(e.target.closest('tr'));
+  if(idx<0) return;
+  if(idx===rows.length-1) addRow();          // 마지막 행에서 Enter → 새 행 하나만
+  const next=document.querySelectorAll('#parts tr')[idx+1];
+  if(next) next.querySelector('[data-name]').focus();
+});
+
+/* 초기: 예시 없이 빈 행 하나로 시작 */
+addRow();
+document.querySelector('#parts [data-name]').focus();
+</script>
+</body>
+</html>
